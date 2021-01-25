@@ -25,7 +25,7 @@ In the **Create service form** use the following settings:
 
 1. **Container Image**: Use **gcr.io/corvid-api/firestore-connector-node**.
 2. **Deployment Platform**: Select **Cloud Run (fully managed)**.
-3. **Location**: Select **us-east1** region.
+3. **Location**: Select **europe-west1** region.
 4. **Authentication**: Select **Allow unauthenticated invocations**. This enables access to the connector from Corvid.
 5. **Show Optional Settings**: Add an **Environment variable** named "SECRET_KEY" with your secret key as the value. This value is used for connecting to your Corvid enabled site.
 6. Click **Create** to deploy the image to Google Cloud Run and wait for the deployment to finish.
@@ -54,7 +54,7 @@ Copy the service URL. You will need it to [connect Firestore to your Corvid enab
 4. [Deploy the Corvid connector container](https://cloud.google.com/sdk/gcloud/reference/run/deploy):
 
     ```bash
-    gcloud run deploy --image gcr.io/corvid-api/firestore-connector-node --platform managed --region us-east1 --set-env-vars SECRET_KEY=[YOUR SECRET KEY]
+    gcloud run deploy --image gcr.io/corvid-api/firestore-connector-node --platform managed --region europe-west1 --set-env-vars SECRET_KEY=[YOUR SECRET KEY]
     ```
 
     a. At the prompt: **Allow unauthenticated invocations to [firestore-connector-node] (Y/N)?** Choose "Y".
