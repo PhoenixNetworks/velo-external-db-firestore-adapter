@@ -13,14 +13,17 @@ const firestore = new Firestore({
 
 exports.query = (query) => {
 
-  console.log('got query: ' + JSON.stringify(query));
+  // console.log('got query: ' + JSON.stringify(query));
   const collRef = firestore.collection(query.collectionName);
 
-  let sortedQuery = parseSort(query.sort, collRef);
-  const filteredQuery = parseFilter(query.filter, sortedQuery);
-
-
-  return filteredQuery
+  let fsQuery = parseSort(query.sort, collRef);  
+  fsQuery = parseFilter(query.filter, fsQuery);
+  
+  if (query.select){
+    fsQuery = fsQuery.select(query.select);
+  }
+  
+  return fsQuery
     .limit(query.limit)
     .offset(query.skip)
     .get()
@@ -53,15 +56,13 @@ exports.delete = async (collectionName, itemId) => {
   }
 };
 
-exports.update = async (collectionName, item) => {
-  // TODO: move this implementation to use decent update
+exports.update = async (collectionName, item, merge = true) => {
+
+  //console.log('got update: ' + JSON.stringify(item));
+  
   try {
     const reference = firestore.doc(`${collectionName}/${item._id}`);
-    await firestore
-      .batch()
-      .delete(reference, { exists: true })
-      .create(reference, item)
-      .commit();
+    await reference.set(item, {merge: merge});
 
   } catch (e) {
     switch (e.code) {
@@ -87,29 +88,70 @@ exports.insert = async (collectionName, item) => {
   }
 };
 
-exports.getFirstDoc = async (collectionName) => {
+const getFirstDoc = async (collectionName) => {
   
   const collectionRef = firestore.collection(collectionName).limit(1);
 
   const doc = await collectionRef.get();
   const data = doc.docs[0].data();
 
-  console.log('data: ' + JSON.stringify(data));
-
   return data;
 }
 
-exports.getSettings = async () => {
+exports.describeDoc = async (collectionId) => {
 
-  const settingsRef = firestore.doc('_settings/settings');
+  const aDoc = await getFirstDoc(collectionId)
 
-  try{
-    const settingsDoc = await settingsRef.get();
-
-    return settingsDoc.data();
-  } catch (e) {
-    
-    console.log('error fetching settings: ' + JSON.stringify(e));
+  return {
+    displayName: collectionId,
+    id: collectionId,
+    allowedOperations: ["get", "find", "count", "update", "insert", "remove"],
+    maxPageSize: 50,
+    ttl: 3600,
+    fields: jsonFieldsToCorvidFields(Object.entries(aDoc))
   }
 }
 
+const jsonFieldsToCorvidFields = columns => {
+  return columns
+    .map(field => {
+      return {
+        displayName: field[0],
+        type: jsonValueTypeToCorvid(field[1]),
+        queryOperators: [
+          'eq',
+          'lt',
+          'gt',
+          'hasSome',
+          'and',
+          'lte',
+          'gte',
+          'or',
+          // 'not',
+          // 'ne',
+          'startsWith',
+          'endsWith'
+        ]
+      }
+    })
+    .reduce((map, obj) => {
+      map[obj.displayName] = obj
+      return map
+    }, {})
+}
+
+const jsonValueTypeToCorvid = val => {
+
+  const type = typeof val;
+  
+  switch (type) {
+    case 'string':
+      return 'text'
+    case 'object':      
+      if (val instanceof Firestore.Timestamp){
+        return 'datetime'
+      }
+    default:
+      return type
+  }
+}
