@@ -1,4 +1,8 @@
-runtime: nodejs10
+runtime: nodejs12
 service: corvid-firestore-connector
 
 instance_class: F4_1G
+
+env_variables:
+  SECRET_KEY: myFirebaseSecret
+  ALLOWED_OPERATIONS: '["get", "find", "count", "update", "insert", "remove"]'
